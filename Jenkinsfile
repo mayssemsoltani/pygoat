@@ -30,6 +30,7 @@ pipeline {
                     docker run -d --name pygoat-app \
                         --network infra_default -e ALLOWED_HOSTS=pygoat-app,localhost,127.0.0.1,192.168.44.128 \
                         -p 8000:8000 $IMAGE:$TAG
+                    docker exec pygoat-app python manage.py migrate --noinput
                 '''
             }
         }
