@@ -27,7 +27,7 @@ SENSITIVE_DATA = "FLAGTHATNEEDSTOBEFOUND"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["pygoat.herokuapp.com", "0.0.0.0", "127.0.0.1", "localhost", "lvh.me", ".lvh.me", "web"]
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "pygoat.herokuapp.com,0.0.0.0,127.0.0.1,localhost,lvh.me,.lvh.me,web").split(",")
 
 
 # Application definition
