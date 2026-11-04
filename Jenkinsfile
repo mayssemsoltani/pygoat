@@ -1,6 +1,6 @@
 // ============================================================
 //  PyGoat - Pipeline DevSecOps
-//  v1 : + scan de secrets (Gitleaks) - mode observation
+//  v2 : Gitleaks BLOQUANT + exemptions tracées + build auto
 // ============================================================
 pipeline {
     agent any
@@ -9,6 +9,11 @@ pipeline {
         IMAGE     = 'pygoat'
         TAG       = "${env.BUILD_NUMBER}"
         APP_HOSTS = 'pygoat-app,localhost,127.0.0.1,192.168.44.128'
+    }
+
+    // Exécution automatique : Jenkins vérifie GitHub toutes les ~2 min
+    triggers {
+        pollSCM('H/2 * * * *')
     }
 
     options {
@@ -22,16 +27,21 @@ pipeline {
             }
         }
 
-        // --- SÉCURITÉ : détection de secrets dans le code et l'historique Git
+        // --- SÉCURITÉ : secrets (BLOQUANT)
+        // - exit-code 1 : tout NOUVEAU secret fait échouer le build
+        // - redact      : les valeurs sont masquées dans le rapport archivé
+        // - exemptions  : .gitleaksignore (secrets de lab volontaires, justifiés)
         stage('Secrets scan (Gitleaks)') {
             steps {
                 sh '''
                     docker run --rm --volumes-from jenkins -u $(id -u) \
                         ghcr.io/gitleaks/gitleaks:latest detect \
                         --source "$WORKSPACE" \
+                        --gitleaks-ignore-path "$WORKSPACE/.gitleaksignore" \
                         --report-format json \
                         --report-path "$WORKSPACE/gitleaks-report.json" \
-                        --exit-code 0
+                        --redact \
+                        --exit-code 1
                 '''
             }
         }

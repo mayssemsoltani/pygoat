@@ -1,0 +1,77 @@
+# ================================================================
+# Exemptions Gitleaks - PyGoat
+# Motif : secrets VOLONTAIRES de l'application d'entraînement OWASP
+# Validé par : Mayssem Soltani - le 2026-11-04
+# Revue : à chaque release ; toute nouvelle entrée = justification
+# ================================================================
+
+# generic-api-key - dockerized_labs/auth_failure_lab/app.py:47 - secret de lab volontaire
+332f43fe82f9844dfdd498f3bcbf3d53178fc41d:dockerized_labs/auth_failure_lab/app.py:generic-api-key:47
+# generic-api-key - dockerized_labs/auth_failure_lab/app.py:49 - secret de lab volontaire
+332f43fe82f9844dfdd498f3bcbf3d53178fc41d:dockerized_labs/auth_failure_lab/app.py:generic-api-key:49
+# generic-api-key - dockerized_labs/auth_failure_lab/app.py:51 - secret de lab volontaire
+332f43fe82f9844dfdd498f3bcbf3d53178fc41d:dockerized_labs/auth_failure_lab/app.py:generic-api-key:51
+# generic-api-key - dockerized_labs/auth_failure_lab/app.py:53 - secret de lab volontaire
+6bd0973a9064cd348dd54c62024506db0ea96bf2:dockerized_labs/auth_failure_lab/app.py:generic-api-key:53
+# generic-api-key - dockerized_labs/auth_failure_lab/app.py:53 - secret de lab volontaire
+332f43fe82f9844dfdd498f3bcbf3d53178fc41d:dockerized_labs/auth_failure_lab/app.py:generic-api-key:53
+# generic-api-key - dockerized_labs/auth_failure_lab/app.py:59 - secret de lab volontaire
+6bd0973a9064cd348dd54c62024506db0ea96bf2:dockerized_labs/auth_failure_lab/app.py:generic-api-key:59
+# generic-api-key - dockerized_labs/auth_failure_lab/app.py:65 - secret de lab volontaire
+6bd0973a9064cd348dd54c62024506db0ea96bf2:dockerized_labs/auth_failure_lab/app.py:generic-api-key:65
+# generic-api-key - dockerized_labs/auth_failure_lab/app.py:71 - secret de lab volontaire
+6bd0973a9064cd348dd54c62024506db0ea96bf2:dockerized_labs/auth_failure_lab/app.py:generic-api-key:71
+# generic-api-key - dockerized_labs/dependency_attack_lab/app.py:11 - secret de lab volontaire
+0b7cb706722e1f89b9195906477e4fa595a133ac:dockerized_labs/dependency_attack_lab/app.py:generic-api-key:11
+# stripe-access-token - dockerized_labs/package_injection_lab/app.py:11 - secret de lab volontaire
+5db7327c95259f4166041e101be85bb6d7de7252:dockerized_labs/package_injection_lab/app.py:stripe-access-token:11
+# generic-api-key - dockerized_labs/package_injection_lab/app.py:14 - secret de lab volontaire
+6bd0973a9064cd348dd54c62024506db0ea96bf2:dockerized_labs/package_injection_lab/app.py:generic-api-key:14
+# generic-api-key - dockerized_labs/package_injection_lab/app.py:14 - secret de lab volontaire
+5db7327c95259f4166041e101be85bb6d7de7252:dockerized_labs/package_injection_lab/app.py:generic-api-key:14
+# stripe-access-token - dockerized_labs/sec_misconfig/app.py:13 - secret de lab volontaire
+6bd0973a9064cd348dd54c62024506db0ea96bf2:dockerized_labs/sec_misconfig/app.py:stripe-access-token:13
+# stripe-access-token - dockerized_labs/sec_misconfig/app.py:13 - secret de lab volontaire
+332f43fe82f9844dfdd498f3bcbf3d53178fc41d:dockerized_labs/sec_misconfig/app.py:stripe-access-token:13
+# generic-api-key - dockerized_labs/sec_misconfig/app.py:43 - secret de lab volontaire
+332f43fe82f9844dfdd498f3bcbf3d53178fc41d:dockerized_labs/sec_misconfig/app.py:generic-api-key:43
+# stripe-access-token - dockerized_labs/sec_misconfig/app.py:45 - secret de lab volontaire
+332f43fe82f9844dfdd498f3bcbf3d53178fc41d:dockerized_labs/sec_misconfig/app.py:stripe-access-token:45
+# generic-api-key - dockerized_labs/sec_misconfig/app.py:58 - secret de lab volontaire
+6bd0973a9064cd348dd54c62024506db0ea96bf2:dockerized_labs/sec_misconfig/app.py:generic-api-key:58
+# stripe-access-token - dockerized_labs/sec_misconfig/app.py:60 - secret de lab volontaire
+6bd0973a9064cd348dd54c62024506db0ea96bf2:dockerized_labs/sec_misconfig/app.py:stripe-access-token:60
+# generic-api-key - introduction/views.py:1105 - secret de lab volontaire
+6bd0973a9064cd348dd54c62024506db0ea96bf2:introduction/views.py:generic-api-key:1105
+# generic-api-key - introduction/views.py:1109 - secret de lab volontaire
+6bd0973a9064cd348dd54c62024506db0ea96bf2:introduction/views.py:generic-api-key:1109
+# generic-api-key - introduction/views.py:1548 - secret de lab volontaire
+6bd0973a9064cd348dd54c62024506db0ea96bf2:introduction/views.py:generic-api-key:1548
+# generic-api-key - introduction/views.py:1553 - secret de lab volontaire
+6bd0973a9064cd348dd54c62024506db0ea96bf2:introduction/views.py:generic-api-key:1553
+# generic-api-key - introduction/views.py:1558 - secret de lab volontaire
+6bd0973a9064cd348dd54c62024506db0ea96bf2:introduction/views.py:generic-api-key:1558
+# generic-api-key - introduction/views.py:1563 - secret de lab volontaire
+6bd0973a9064cd348dd54c62024506db0ea96bf2:introduction/views.py:generic-api-key:1563
+# jwt - pygoat/introduction/static/js/a7.js:4 - secret de lab volontaire
+81c7e88d275ddb310e455f2e7ccb0b0af69feecf:pygoat/introduction/static/js/a7.js:jwt:4
+# generic-api-key - pygoat/introduction/static/js/a7.js:7 - secret de lab volontaire
+81c7e88d275ddb310e455f2e7ccb0b0af69feecf:pygoat/introduction/static/js/a7.js:generic-api-key:7
+# jwt - pygoat/introduction/static/js/a9.js:18 - secret de lab volontaire
+d945dfc0272e147abd3a065d6bdae87dfd65111b:pygoat/introduction/static/js/a9.js:jwt:18
+# generic-api-key - pygoat/introduction/static/js/a9.js:21 - secret de lab volontaire
+d945dfc0272e147abd3a065d6bdae87dfd65111b:pygoat/introduction/static/js/a9.js:generic-api-key:21
+# generic-api-key - pygoat/introduction/templates/Lab_2021/A7_auth_failure/lab3.html:83 - secret de lab volontaire
+d57cea172a1ff6a906dfd4a3ec83be3ce1b4cb4f:pygoat/introduction/templates/Lab_2021/A7_auth_failure/lab3.html:generic-api-key:83
+# generic-api-key - pygoat/introduction/views.py:683 - secret de lab volontaire
+ff94a38e4f5425a69f70319ef76f12389ae2e854:pygoat/introduction/views.py:generic-api-key:683
+# generic-api-key - pygoat/introduction/views.py:685 - secret de lab volontaire
+ff94a38e4f5425a69f70319ef76f12389ae2e854:pygoat/introduction/views.py:generic-api-key:685
+# generic-api-key - pygoat/introduction/views.py:1017 - secret de lab volontaire
+d57cea172a1ff6a906dfd4a3ec83be3ce1b4cb4f:pygoat/introduction/views.py:generic-api-key:1017
+# generic-api-key - pygoat/introduction/views.py:1018 - secret de lab volontaire
+d57cea172a1ff6a906dfd4a3ec83be3ce1b4cb4f:pygoat/introduction/views.py:generic-api-key:1018
+# generic-api-key - pygoat/introduction/views.py:1019 - secret de lab volontaire
+d57cea172a1ff6a906dfd4a3ec83be3ce1b4cb4f:pygoat/introduction/views.py:generic-api-key:1019
+# generic-api-key - pygoat/introduction/views.py:1020 - secret de lab volontaire
+d57cea172a1ff6a906dfd4a3ec83be3ce1b4cb4f:pygoat/introduction/views.py:generic-api-key:1020
