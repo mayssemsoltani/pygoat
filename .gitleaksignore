@@ -75,3 +75,14 @@ d57cea172a1ff6a906dfd4a3ec83be3ce1b4cb4f:pygoat/introduction/views.py:generic-ap
 d57cea172a1ff6a906dfd4a3ec83be3ce1b4cb4f:pygoat/introduction/views.py:generic-api-key:1019
 # generic-api-key - pygoat/introduction/views.py:1020 - secret de lab volontaire
 d57cea172a1ff6a906dfd4a3ec83be3ce1b4cb4f:pygoat/introduction/views.py:generic-api-key:1020
+
+# ================================================================
+# INCIDENT 2026-11-04 - clé API de paiement exposée (demo_config.py)
+# Détecté par   : Gitleaks, build Jenkins #5 (bloqué avant build/déploiement)
+# Retiré du code : commit 019c668
+# Action        : secret FACTICE de démonstration.
+#                 En situation réelle : révocation immédiate chez le
+#                 fournisseur AVANT d'ajouter cette exemption.
+# Validé par    : Mayssem Soltani - le 2026-11-04
+# ================================================================
+e057232c9b78b1030277325192a4a9f6ad269498:demo_config.py:generic-api-key:2
