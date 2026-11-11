@@ -2,3 +2,13 @@
 # Exemptions Trivy - PyGoat
 # Chaque entrée : identifiant CVE + motif + validé par + date
 # ================================================================
+
+# ----------------------------------------------------------------
+# PyYAML 5.1 - dépendance VOLONTAIRE du lab "Insecure Deserialization"
+# (le lab repose sur yaml.load() non sécurisé ; une mise à jour casserait l'exercice)
+# Risque accepté : application d'entraînement, non exposée en production
+# Validé par : Mayssem Soltani - le 2026-11-11 - revue à chaque release
+# ----------------------------------------------------------------
+CVE-2019-20477
+CVE-2020-1747
+CVE-2020-14343

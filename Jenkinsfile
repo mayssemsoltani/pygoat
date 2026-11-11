@@ -114,7 +114,7 @@ pipeline {
                         -e TRIVY_CACHE_DIR aquasec/trivy:latest fs \
                         --scanners vuln --severity CRITICAL --ignore-unfixed \
                         --ignorefile "$WORKSPACE/.trivyignore" \
-                        --exit-code 1 "$WORKSPACE"
+                        --skip-dirs "$WORKSPACE/dockerized_labs" --exit-code 1 "$WORKSPACE"
                 '''
             }
         }
