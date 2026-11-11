@@ -7,7 +7,7 @@
 //   - Checkov (IaC)  : rapport seul (Dockerfile)
 //   - Trivy SCA      : BLOQUANT (CRITICAL avec correctif dispo)
 //   - Trivy image    : BLOQUANT (CRITICAL avec correctif dispo)
-//   - Syft (SBOM)    : inventaire CycloneDX de l'image
+//   - SBOM           : inventaire CycloneDX de l'image (Trivy)
 //   - ZAP baseline   : rapport seul (staging)
 //   - Slack          : notification en cas de blocage / retour au vert
 // ============================================================
@@ -155,14 +155,14 @@ pipeline {
             }
         }
 
-        // ---------- 6. SBOM (inventaire CycloneDX) ----------
-        stage('SBOM (Syft)') {
+        // ---------- 6. SBOM (inventaire CycloneDX, genere par Trivy) ----------
+        stage('SBOM (CycloneDX)') {
             steps {
                 sh '''
                     SOCK_GID=$(stat -c %g /var/run/docker.sock)
                     docker run --rm --volumes-from jenkins -u $(id -u) --group-add $SOCK_GID \
-                        anchore/syft:latest $IMAGE:$TAG \
-                        -o cyclonedx-json="$WORKSPACE/sbom-report.json"
+                        -e TRIVY_CACHE_DIR aquasec/trivy:latest image \
+                        --format cyclonedx -o "$WORKSPACE/sbom-report.json" $IMAGE:$TAG
                 '''
             }
         }
