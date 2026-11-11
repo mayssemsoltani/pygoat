@@ -1,7 +1,26 @@
+# ============================================================
+# Hooks locaux (shift-left) : bloquent un commit AVANT qu'il
+# n'existe, sur le poste du développeur
+#  - Black    : formatage du code (hook d'origine de PyGoat)
+#  - Gitleaks : secrets dans les fichiers modifiés
+#  - Bandit   : failles Python de sévérité moyenne ou haute
+# Versions épinglées : exécution reproductible (chaîne d'appro.)
+# ============================================================
 repos:
   - repo: https://github.com/psf/black
-    rev: 24.10.0
+    rev: 26.10.1
     hooks:
       - id: black
         language_version: python3
         args: [--quiet]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks-docker
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        args: ["-ll", "-q"]
