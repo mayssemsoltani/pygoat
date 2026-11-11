@@ -1,14 +1,23 @@
 // ============================================================
 //  PyGoat - Pipeline DevSecOps
-//  v3 : + SAST (Semgrep + SonarQube) - mode observation
+//  v4 : secrets + SAST + SCA + scan d'image + DAST + rapports
+//
+//  Politique de blocage :
+//   - Gitleaks       : BLOQUANT (tout nouveau secret)
+//   - SonarQube QG   : BLOQUANT (nouveau code uniquement)
+//   - Semgrep        : rapport seul
+//   - Trivy SCA      : BLOQUANT (CRITICAL avec correctif dispo)
+//   - Trivy image    : BLOQUANT (CRITICAL avec correctif dispo)
+//   - ZAP baseline   : rapport seul (staging)
 // ============================================================
 pipeline {
     agent any
 
     environment {
-        IMAGE     = 'pygoat'
-        TAG       = "${env.BUILD_NUMBER}"
-        APP_HOSTS = 'pygoat-app,localhost,127.0.0.1,192.168.44.128'
+        IMAGE           = 'pygoat'
+        TAG             = "${env.BUILD_NUMBER}"
+        APP_HOSTS       = 'pygoat-app,localhost,127.0.0.1,192.168.44.128'
+        TRIVY_CACHE_DIR = '/var/jenkins_home/.trivy-cache'
     }
 
     triggers {
@@ -26,7 +35,7 @@ pipeline {
             }
         }
 
-        // --- SÉCURITÉ : secrets (BLOQUANT, exemptions dans .gitleaksignore)
+        // ---------- 1. SECRETS (bloquant) ----------
         stage('Secrets scan (Gitleaks)') {
             steps {
                 sh '''
@@ -36,27 +45,27 @@ pipeline {
                         --gitleaks-ignore-path "$WORKSPACE/.gitleaksignore" \
                         --report-format json \
                         --report-path "$WORKSPACE/gitleaks-report.json" \
-                        --redact \
-                        --exit-code 1
+                        --redact --exit-code 1
                 '''
             }
         }
 
-        // --- SÉCURITÉ : SAST Semgrep (règles Python + Django) - observation
+        // ---------- 2. SAST ----------
+        // Semgrep exige le code monté sur /src : on monte le seul
+        // dossier workspace du volume Jenkins (volume-subpath)
         stage('SAST (Semgrep)') {
             steps {
                 sh '''
-                    docker run --rm --volumes-from jenkins -u $(id -u) \
-                        -e HOME=/tmp -w "$WORKSPACE" \
-                        semgrep/semgrep:latest \
+                    docker run --rm -u $(id -u) -e HOME=/tmp \
+                        --mount type=volume,src=infra_jenkins_home,dst=/src,volume-subpath=workspace/$JOB_NAME \
+                        -w /src semgrep/semgrep:latest \
                         semgrep scan --config p/python --config p/django \
-                        --metrics=off --json --output semgrep-report.json
+                        --metrics=off --json --output /src/semgrep-report.json
                 '''
             }
         }
 
-        // --- SÉCURITÉ : SAST SonarQube (qualité + sécurité du code)
-        // set +x : empêche le token d'apparaître dans les logs Jenkins
+        // set +x : le token SonarQube n'apparaît jamais dans les logs
         stage('SAST (SonarQube)') {
             steps {
                 withSonarQubeEnv('sonarqube') {
@@ -79,18 +88,58 @@ pipeline {
             }
         }
 
-        // --- Quality Gate SonarQube - observation (n'arrête pas encore le build)
         stage('Quality Gate (SonarQube)') {
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: false
+                    waitForQualityGate abortPipeline: true
                 }
+            }
+        }
+
+        // ---------- 3. SCA - dépendances (bloquant sur CRITICAL corrigeable) ----------
+        stage('SCA (Trivy dependencies)') {
+            steps {
+                sh '''
+                    docker run --rm --volumes-from jenkins -u $(id -u) \
+                        -e TRIVY_CACHE_DIR aquasec/trivy:latest fs \
+                        --scanners vuln --severity HIGH,CRITICAL \
+                        --format json -o "$WORKSPACE/trivy-fs-report.json" "$WORKSPACE"
+                    docker run --rm --volumes-from jenkins -u $(id -u) \
+                        -e TRIVY_CACHE_DIR aquasec/trivy:latest fs \
+                        --scanners vuln --severity HIGH,CRITICAL \
+                        --format template --template "@/contrib/html.tpl" \
+                        -o "$WORKSPACE/trivy-fs-report.html" "$WORKSPACE"
+                    docker run --rm --volumes-from jenkins -u $(id -u) \
+                        -e TRIVY_CACHE_DIR aquasec/trivy:latest fs \
+                        --scanners vuln --severity CRITICAL --ignore-unfixed \
+                        --ignorefile "$WORKSPACE/.trivyignore" \
+                        --exit-code 1 "$WORKSPACE"
+                '''
             }
         }
 
         stage('Build image') {
             steps {
                 sh 'docker build -t $IMAGE:$TAG .'
+            }
+        }
+
+        // ---------- 4. SCAN D'IMAGE (bloquant sur CRITICAL corrigeable) ----------
+        stage('Image scan (Trivy)') {
+            steps {
+                sh '''
+                    SOCK_GID=$(stat -c %g /var/run/docker.sock)
+                    docker run --rm --volumes-from jenkins -u $(id -u) --group-add $SOCK_GID \
+                        -e TRIVY_CACHE_DIR aquasec/trivy:latest image \
+                        --scanners vuln --severity HIGH,CRITICAL \
+                        --format template --template "@/contrib/html.tpl" \
+                        -o "$WORKSPACE/trivy-image-report.html" $IMAGE:$TAG
+                    docker run --rm --volumes-from jenkins -u $(id -u) --group-add $SOCK_GID \
+                        -e TRIVY_CACHE_DIR aquasec/trivy:latest image \
+                        --scanners vuln --severity CRITICAL --ignore-unfixed \
+                        --ignorefile "$WORKSPACE/.trivyignore" \
+                        --exit-code 1 $IMAGE:$TAG
+                '''
             }
         }
 
@@ -119,11 +168,32 @@ pipeline {
                 '''
             }
         }
+
+        // ---------- 5. DAST (rapport seul, en staging) ----------
+        stage('DAST (OWASP ZAP baseline)') {
+            steps {
+                sh '''
+                    docker run --rm --network infra_default \
+                        -v infra_jenkins_home:/zap/wrk:rw \
+                        ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+                        -t http://pygoat-app:8000 \
+                        -r "workspace/$JOB_NAME/zap-report.html" \
+                        -J "workspace/$JOB_NAME/zap-report.json" \
+                        -I
+                '''
+            }
+        }
     }
 
     post {
         always {
-            archiveArtifacts artifacts: '*-report.json', allowEmptyArchive: true
+            archiveArtifacts artifacts: '*-report.json, *-report.html', allowEmptyArchive: true
+            publishHTML(target: [allowMissing: true, alwaysLinkToLastBuild: true, keepAll: true,
+                reportDir: '.', reportFiles: 'trivy-fs-report.html', reportName: 'Trivy - Dependances'])
+            publishHTML(target: [allowMissing: true, alwaysLinkToLastBuild: true, keepAll: true,
+                reportDir: '.', reportFiles: 'trivy-image-report.html', reportName: 'Trivy - Image'])
+            publishHTML(target: [allowMissing: true, alwaysLinkToLastBuild: true, keepAll: true,
+                reportDir: '.', reportFiles: 'zap-report.html', reportName: 'OWASP ZAP'])
         }
     }
 }
