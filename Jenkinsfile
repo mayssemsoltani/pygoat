@@ -1,6 +1,6 @@
 // ============================================================
 //  PyGoat - Pipeline DevSecOps
-//  v2 : Gitleaks BLOQUANT + exemptions tracées + build auto
+//  v3 : + SAST (Semgrep + SonarQube) - mode observation
 // ============================================================
 pipeline {
     agent any
@@ -11,7 +11,6 @@ pipeline {
         APP_HOSTS = 'pygoat-app,localhost,127.0.0.1,192.168.44.128'
     }
 
-    // Exécution automatique : Jenkins vérifie GitHub toutes les ~2 min
     triggers {
         pollSCM('H/2 * * * *')
     }
@@ -27,10 +26,7 @@ pipeline {
             }
         }
 
-        // --- SÉCURITÉ : secrets (BLOQUANT)
-        // - exit-code 1 : tout NOUVEAU secret fait échouer le build
-        // - redact      : les valeurs sont masquées dans le rapport archivé
-        // - exemptions  : .gitleaksignore (secrets de lab volontaires, justifiés)
+        // --- SÉCURITÉ : secrets (BLOQUANT, exemptions dans .gitleaksignore)
         stage('Secrets scan (Gitleaks)') {
             steps {
                 sh '''
@@ -43,6 +39,52 @@ pipeline {
                         --redact \
                         --exit-code 1
                 '''
+            }
+        }
+
+        // --- SÉCURITÉ : SAST Semgrep (règles Python + Django) - observation
+        stage('SAST (Semgrep)') {
+            steps {
+                sh '''
+                    docker run --rm --volumes-from jenkins -u $(id -u) \
+                        -e HOME=/tmp -w "$WORKSPACE" \
+                        semgrep/semgrep:latest \
+                        semgrep scan --config p/python --config p/django \
+                        --metrics=off --json --output semgrep-report.json
+                '''
+            }
+        }
+
+        // --- SÉCURITÉ : SAST SonarQube (qualité + sécurité du code)
+        // set +x : empêche le token d'apparaître dans les logs Jenkins
+        stage('SAST (SonarQube)') {
+            steps {
+                withSonarQubeEnv('sonarqube') {
+                    sh '''
+                        set +x
+                        export SONAR_TOKEN="$SONAR_AUTH_TOKEN"
+                        docker run --rm --volumes-from jenkins -u $(id -u) \
+                            --network infra_default \
+                            -e SONAR_HOST_URL -e SONAR_TOKEN \
+                            -e SONAR_USER_HOME="$WORKSPACE/.sonar" \
+                            -w "$WORKSPACE" \
+                            sonarsource/sonar-scanner-cli:latest \
+                            -Dsonar.projectKey=pygoat \
+                            -Dsonar.projectName=PyGoat \
+                            -Dsonar.sources=. \
+                            -Dsonar.exclusions=**/migrations/**,**/static/**,**/*.min.js \
+                            -Dsonar.python.version=3.11
+                    '''
+                }
+            }
+        }
+
+        // --- Quality Gate SonarQube - observation (n'arrête pas encore le build)
+        stage('Quality Gate (SonarQube)') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: false
+                }
             }
         }
 
