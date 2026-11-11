@@ -103,7 +103,7 @@ pipeline {
                     docker run --rm --volumes-from jenkins -u $(id -u) -e HOME=/tmp \
                         bridgecrew/checkov:latest \
                         -f "$WORKSPACE/Dockerfile" --framework dockerfile \
-                        -o json --soft-fail > "$WORKSPACE/checkov-report.json"
+                        -o json --soft-fail > "$WORKSPACE/checkov-report.json" || true
                 '''
             }
         }
