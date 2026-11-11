@@ -81,7 +81,7 @@ pipeline {
                             -Dsonar.projectKey=pygoat \
                             -Dsonar.projectName=PyGoat \
                             -Dsonar.sources=. \
-                            -Dsonar.exclusions=**/migrations/**,**/static/**,**/*.min.js \
+                            -Dsonar.exclusions=**/migrations/**,**/static/**,**/*.min.js,*-report.*,.sonar/**,.scannerwork/** \
                             -Dsonar.python.version=3.11 \
                             -Dsonar.working.directory="$WORKSPACE/.scannerwork"
                     '''
