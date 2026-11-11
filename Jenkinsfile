@@ -1,14 +1,15 @@
 // ============================================================
-//  PyGoat - Pipeline DevSecOps
-//  v4 : secrets + SAST + SCA + scan d'image + DAST + rapports
-//
+//  PyGoat - Pipeline DevSecOps (version finale)
 //  Politique de blocage :
 //   - Gitleaks       : BLOQUANT (tout nouveau secret)
 //   - SonarQube QG   : BLOQUANT (nouveau code uniquement)
 //   - Semgrep        : rapport seul
+//   - Checkov (IaC)  : rapport seul (Dockerfile)
 //   - Trivy SCA      : BLOQUANT (CRITICAL avec correctif dispo)
 //   - Trivy image    : BLOQUANT (CRITICAL avec correctif dispo)
+//   - Syft (SBOM)    : inventaire CycloneDX de l'image
 //   - ZAP baseline   : rapport seul (staging)
+//   - Slack          : notification en cas de blocage / retour au vert
 // ============================================================
 pipeline {
     agent any
@@ -51,8 +52,6 @@ pipeline {
         }
 
         // ---------- 2. SAST ----------
-        // Semgrep exige le code monté sur /src : on monte le seul
-        // dossier workspace du volume Jenkins (volume-subpath)
         stage('SAST (Semgrep)') {
             steps {
                 sh '''
@@ -65,7 +64,7 @@ pipeline {
             }
         }
 
-        // set +x : le token SonarQube n'apparaît jamais dans les logs
+        // set +x : le token SonarQube n'apparait jamais dans les logs
         stage('SAST (SonarQube)') {
             steps {
                 withSonarQubeEnv('sonarqube') {
@@ -97,7 +96,19 @@ pipeline {
             }
         }
 
-        // ---------- 3. SCA - dépendances (bloquant sur CRITICAL corrigeable) ----------
+        // ---------- 3. IaC (rapport seul) ----------
+        stage('IaC scan (Checkov)') {
+            steps {
+                sh '''
+                    docker run --rm --volumes-from jenkins -u $(id -u) -e HOME=/tmp \
+                        bridgecrew/checkov:latest \
+                        -f "$WORKSPACE/Dockerfile" --framework dockerfile \
+                        -o json --soft-fail > "$WORKSPACE/checkov-report.json"
+                '''
+            }
+        }
+
+        // ---------- 4. SCA - dependances (bloquant sur CRITICAL corrigeable) ----------
         stage('SCA (Trivy dependencies)') {
             steps {
                 sh '''
@@ -125,7 +136,7 @@ pipeline {
             }
         }
 
-        // ---------- 4. SCAN D'IMAGE (bloquant sur CRITICAL corrigeable) ----------
+        // ---------- 5. SCAN D'IMAGE (bloquant sur CRITICAL corrigeable) ----------
         stage('Image scan (Trivy)') {
             steps {
                 sh '''
@@ -140,6 +151,18 @@ pipeline {
                         --scanners vuln --severity CRITICAL --ignore-unfixed \
                         --ignorefile "$WORKSPACE/.trivyignore" \
                         --exit-code 1 $IMAGE:$TAG
+                '''
+            }
+        }
+
+        // ---------- 6. SBOM (inventaire CycloneDX) ----------
+        stage('SBOM (Syft)') {
+            steps {
+                sh '''
+                    SOCK_GID=$(stat -c %g /var/run/docker.sock)
+                    docker run --rm --volumes-from jenkins -u $(id -u) --group-add $SOCK_GID \
+                        anchore/syft:latest $IMAGE:$TAG \
+                        -o cyclonedx-json="$WORKSPACE/sbom-report.json"
                 '''
             }
         }
@@ -170,7 +193,7 @@ pipeline {
             }
         }
 
-        // ---------- 5. DAST (rapport seul, en staging) ----------
+        // ---------- 7. DAST (rapport seul, en staging) ----------
         stage('DAST (OWASP ZAP baseline)') {
             steps {
                 sh '''
@@ -195,6 +218,27 @@ pipeline {
                 reportDir: '.', reportFiles: 'trivy-image-report.html', reportName: 'Trivy - Image'])
             publishHTML(target: [allowMissing: true, alwaysLinkToLastBuild: true, keepAll: true,
                 reportDir: '.', reportFiles: 'zap-report.html', reportName: 'OWASP ZAP'])
+        }
+        // ---------- ALERTING : Slack (webhook stocke en credential Jenkins) ----------
+        failure {
+            withCredentials([string(credentialsId: 'slack-webhook', variable: 'SLACK_URL')]) {
+                sh '''
+                    set +x
+                    curl -s -X POST -H 'Content-type: application/json' \
+                        --data '{"text":":x: Pipeline BLOQUE : '"$JOB_NAME"' #'"$BUILD_NUMBER"' - '"$BUILD_URL"'"}' \
+                        "$SLACK_URL"
+                '''
+            }
+        }
+        fixed {
+            withCredentials([string(credentialsId: 'slack-webhook', variable: 'SLACK_URL')]) {
+                sh '''
+                    set +x
+                    curl -s -X POST -H 'Content-type: application/json' \
+                        --data '{"text":":white_check_mark: Pipeline de nouveau au vert : '"$JOB_NAME"' #'"$BUILD_NUMBER"'"}' \
+                        "$SLACK_URL"
+                '''
+            }
         }
     }
 }
