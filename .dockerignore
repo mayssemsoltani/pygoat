@@ -52,3 +52,9 @@ traefik.yml
 .env.*
 *.sqlite3
 db.sqlite3
+
+# Artefacts du pipeline : ne jamais les embarquer dans l'image
+.git
+.sonar
+.scannerwork
+*-report.*

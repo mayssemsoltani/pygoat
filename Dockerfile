@@ -18,7 +18,7 @@ ENV PYTHONUNBUFFERED=1
 
 COPY requirements.txt requirements.txt
 
-RUN pip wheel --no-cache-dir --no-deps -w /wheels -r requirements.txt
+RUN pip wheel --no-cache-dir --retries 10 --timeout 120 --no-deps -w /wheels -r requirements.txt
 
 # -------- runtime stage --------
 FROM python:3.11-slim-bookworm
