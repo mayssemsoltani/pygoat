@@ -167,6 +167,54 @@ pipeline {
             }
         }
 
+        // ---------- 7. Tests dynamiques sur un environnement de test éphémère ----------
+        // L'image validée est lancée dans un conteneur temporaire, sans port exposé.
+        // Le smoke test et le DAST s'exécutent dessus AVANT tout déploiement.
+        stage('Test env (éphémère)') {
+            steps {
+                sh '''
+                    docker rm -f pygoat-test || true
+                    docker run -d --name pygoat-test \
+                        --network infra_default \
+                        -e ALLOWED_HOSTS=pygoat-test \
+                        $IMAGE:$TAG
+                    docker exec pygoat-test python manage.py migrate --noinput
+                '''
+            }
+            post { failure { sh 'docker rm -f pygoat-test || true' } }
+        }
+
+        stage('Smoke test') {
+            steps {
+                sh '''
+                    for i in $(seq 1 30); do
+                        curl -fs -o /dev/null http://pygoat-test:8000 && exit 0
+                        sleep 2
+                    done
+                    echo "Application injoignable"
+                    exit 1
+                '''
+            }
+            post { failure { sh 'docker rm -f pygoat-test || true' } }
+        }
+
+        stage('DAST (OWASP ZAP baseline)') {
+            steps {
+                sh '''
+                    docker run --rm --network infra_default \
+                        -v infra_jenkins_home:/zap/wrk:rw \
+                        ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+                        -t http://pygoat-test:8000 \
+                        -r "workspace/$JOB_NAME/zap-report.html" \
+                        -J "workspace/$JOB_NAME/zap-report.json" \
+                        -I
+                '''
+            }
+            // L'environnement de test est supprimé dans tous les cas
+            post { always { sh 'docker rm -f pygoat-test || true' } }
+        }
+
+        // ---------- 8. Déploiement : uniquement si TOUS les tests sont passés ----------
         stage('Deploy (staging)') {
             steps {
                 sh '''
@@ -176,34 +224,6 @@ pipeline {
                         -e ALLOWED_HOSTS=$APP_HOSTS \
                         -p 8000:8000 $IMAGE:$TAG
                     docker exec pygoat-app python manage.py migrate --noinput
-                '''
-            }
-        }
-
-        stage('Smoke test') {
-            steps {
-                sh '''
-                    for i in $(seq 1 30); do
-                        curl -fs -o /dev/null http://pygoat-app:8000 && exit 0
-                        sleep 2
-                    done
-                    echo "Application injoignable"
-                    exit 1
-                '''
-            }
-        }
-
-        // ---------- 7. DAST (rapport seul, en staging) ----------
-        stage('DAST (OWASP ZAP baseline)') {
-            steps {
-                sh '''
-                    docker run --rm --network infra_default \
-                        -v infra_jenkins_home:/zap/wrk:rw \
-                        ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-                        -t http://pygoat-app:8000 \
-                        -r "workspace/$JOB_NAME/zap-report.html" \
-                        -J "workspace/$JOB_NAME/zap-report.json" \
-                        -I
                 '''
             }
         }
