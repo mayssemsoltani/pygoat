@@ -39,6 +39,8 @@ RUN pip install --no-cache-dir /wheels/* \
 
 COPY . /app/
 
+RUN python manage.py collectstatic --noinput
+
 EXPOSE 8000
 
 # HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
